@@ -1,0 +1,37 @@
+{
+  "name": "Chat Name",
+  "type": "personal_chat",
+  "id": 123213123,
+  "messages": [
+    {
+      "id": 123,
+      "type": "message",
+      "date": "2021-03-11T14:13:05",
+      "date_unixtime": "1615468385",
+      "from": "some name",
+      "from_id": "your ID",
+      "text": "Hi!",
+      "text_entities": [
+        {
+          "type": "plain",
+          "text": "Hi!"
+        }
+      ]
+    },
+    {
+      "id": 124,
+      "type": "message",
+      "date": "2021-04-07T17:34:04",
+      "date_unixtime": "1617809644",
+      "from": "Some other name",
+      "from_id": "other person ID",
+      "text": "Hello!",
+      "text_entities": [
+        {
+          "type": "plain",
+          "text": "Hello!"
+        }
+      ]
+    }
+  ]
+}

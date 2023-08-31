@@ -7,12 +7,17 @@
     "start": "node ./dist/index.js",
     "prestart": "npm run build",
     "build": "tsc",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+    "dev": "ts-node --respawn --transpile-only src/index.ts",
+    "parse-raw-data": "ts-node-dev scripts/parse-raw-data.ts",
+    "install-python-requirements": "pip3 install -r scripts/requirements.txt",
+    "check-dataset": "python3 scripts/check-dataset.py"
   },
   "keywords": [],
   "author": "Nesterov Nikita and Vitaly Litvinovich",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^20.5.7",
+    "@types/walk": "^2.3.1",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
     "ts-node-dev": "^2.0.0"
@@ -20,6 +25,7 @@
   "dependencies": {
     "dotenv": "^16.3.1",
     "openai": "^4.3.1",
-    "telegraf": "^4.12.2"
+    "telegraf": "^4.12.2",
+    "walk": "^2.3.15"
   }
 }
