@@ -7,10 +7,11 @@
     "start": "node ./dist/index.js",
     "prestart": "npm run build",
     "build": "tsc",
-    "dev": "ts-node --respawn --transpile-only src/index.ts",
-    "parse-raw-data": "ts-node-dev scripts/parse-raw-data.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "parse-raw-data": "ts-node scripts/parse-raw-data.ts",
     "install-python-requirements": "pip3 install -r scripts/requirements.txt",
-    "check-dataset": "python3 scripts/check-dataset.py"
+    "check-dataset": "python3 scripts/check-dataset.py",
+    "postparse-raw-data": "npm run install-python-requirements && npm run check-dataset"
   },
   "keywords": [],
   "author": "Nesterov Nikita and Vitaly Litvinovich",

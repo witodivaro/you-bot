@@ -8,7 +8,7 @@ type Message = {
   date: string
   date_unixtime: string
   from: string
-  from_id: string // "user402824801"
+  from_id: string // "user402824801
   file?: string
   thumbnail?: string
   media_type?: 'sticker'
@@ -38,6 +38,9 @@ type DataSetMessage = {
 
 const [_, __, authorId] = process.argv
 
+const MAX_TOKENS_PER_TRAINING = 1024
+const MAX_CHARS_PER_TRAINING = MAX_TOKENS_PER_TRAINING * 4
+
 const findAllDataFiles = async (rawDataPath: string): Promise<string[]> => {
   const files: string[] = []
 
@@ -57,14 +60,15 @@ const findAllDataFiles = async (rawDataPath: string): Promise<string[]> => {
 }
 
 if (!authorId) {
-  throw new Error('[ERROR]: No author ID provided! Please run the script with an authorId argument');
+  throw new Error(
+    '[ERROR]: No author ID provided! Please run the script with an authorId argument',
+  )
 }
 
 console.log({ authorId })
 
 const run = async () => {
   const rawDataPath = path.join(__dirname, '..', 'rawData')
-  const dataSetPath = path.join(__dirname, '..', 'rawData', 'dataset.json')
 
   const dataFiles = await findAllDataFiles(rawDataPath)
 
@@ -74,7 +78,7 @@ const run = async () => {
     )
   }
 
-  const dataSetMessages = []
+  const trainingMessages = []
 
   for (const filePath of dataFiles) {
     console.log(`Reading file ${filePath}...`)
@@ -87,28 +91,83 @@ const run = async () => {
       (message) => typeof message.text === 'string' && message.text.length > 0,
     )
 
-    if (!textMessages.some(message => message.from_id === authorId)) {
-      throw new Error('[ERROR]: Wrong authorId. Please open any exported chat file and locate your `from_id` value, then rerun the script with the located argument.')
+    if (!textMessages.some((message) => message.from_id === authorId)) {
+      throw new Error(
+        '[ERROR]: Wrong authorId. Please open any exported chat file and locate your `from_id` value, then rerun the script with the located argument.',
+      )
     }
 
-    const singleDialogueDataSetMessages = textMessages.map(
-      (item): DataSetMessage => {
-        const role = item.from_id === authorId ? 'assistant' : 'user'
+    const singleDialogueMessages = textMessages.map((item): DataSetMessage => {
+      const role = item.from_id === authorId ? 'assistant' : 'user'
+      return {
+        role,
+        content: item.text,
+      }
+    })
+
+    trainingMessages.push(...singleDialogueMessages)
+  }
+
+  type DataSetInfo = {
+    dataSets: DataSetMessage[][]
+    charactersUsed: number
+  }
+
+  const { dataSets } = trainingMessages.reduce<DataSetInfo>(
+    (dataSetInfo, message) => {
+      const { dataSets, charactersUsed } = dataSetInfo
+
+      const messageLength = message.content.length
+
+      const isExceedingLimit =
+        messageLength + charactersUsed > MAX_CHARS_PER_TRAINING
+      const lastDataSet = dataSets.at(-1)
+
+      if (isExceedingLimit) {
         return {
-          role,
-          content: item.text,
+          dataSets: [...dataSets, [message]],
+          charactersUsed: 0,
         }
-      },
+      } else if (lastDataSet) {
+        return {
+          dataSets: [...dataSets.slice(0, -1), [...lastDataSet, message]],
+          charactersUsed: charactersUsed + messageLength,
+        }
+      } else {
+        return { dataSets: [[message]], charactersUsed: messageLength }
+      }
+    },
+    {
+      dataSets: [],
+      charactersUsed: 0,
+    },
+  )
+
+  for (const [index, dataSet] of dataSets.entries()) {
+    const trainingDataSet = {
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a person who lives a regular life and knows how to write and run some basic code.',
+        },
+        ...dataSet,
+      ],
+    }
+
+    const dataSetPath = path.join(
+      __dirname,
+      '..',
+      'rawData',
+      'datasets',
+      `dataset_${index}.json`,
     )
 
-    dataSetMessages.push(...singleDialogueDataSetMessages)
+    await fs.writeFile(
+      dataSetPath,
+      JSON.stringify(trainingDataSet),
+    )
   }
-
-  const dataSet = {
-    messages: dataSetMessages,
-  }
-
-  await fs.writeFile(dataSetPath, JSON.stringify(dataSet))
 }
 
 run()
