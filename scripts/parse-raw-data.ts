@@ -38,7 +38,7 @@ type DataSetMessage = {
 
 const [_, __, authorId] = process.argv
 
-const MAX_TOKENS_PER_TRAINING = 1024
+const MAX_TOKENS_PER_TRAINING = 1000
 const MAX_CHARS_PER_TRAINING = MAX_TOKENS_PER_TRAINING * 4
 
 const findAllDataFiles = async (rawDataPath: string): Promise<string[]> => {
@@ -64,8 +64,6 @@ if (!authorId) {
     '[ERROR]: No author ID provided! Please run the script with an authorId argument',
   )
 }
-
-console.log({ authorId })
 
 const run = async () => {
   const rawDataPath = path.join(__dirname, '..', 'rawData')
@@ -105,7 +103,27 @@ const run = async () => {
       }
     })
 
-    trainingMessages.push(...singleDialogueMessages)
+    const messages = singleDialogueMessages.reduce<DataSetMessage[]>(
+      (asd, item) => {
+        const lastMessage = asd.at(-1)
+
+        if (!lastMessage) {
+          return [item]
+        }
+
+        if (lastMessage.role === item.role) {
+          return [
+            ...asd.slice(0, -1),
+            { ...item, content: lastMessage.content + '. ' + item.content },
+          ]
+        }
+
+        return [...asd, item]
+      },
+      [],
+    )
+
+    trainingMessages.push(...messages)
   }
 
   type DataSetInfo = {
@@ -143,31 +161,24 @@ const run = async () => {
     },
   )
 
-  for (const [index, dataSet] of dataSets.entries()) {
+  const lines = []
+
+  for (const dataSet of dataSets) {
     const trainingDataSet = {
       messages: [
         {
           role: 'system',
           content:
-            'You are a person who lives a regular life and knows how to write and run some basic code.',
+            "Your name is Vitali, you are 19 y.o. You are a friend, who works as a software engineer and lives alone for 2 years now. You talk about business, no-sugar. You respond egoistically, sometimes you are trying to help, but you often sound narcistic. You respond like you don't want to engage into dialogue.",
         },
         ...dataSet,
       ],
     }
 
-    const dataSetPath = path.join(
-      __dirname,
-      '..',
-      'rawData',
-      'datasets',
-      `dataset_${index}.json`,
-    )
-
-    await fs.writeFile(
-      dataSetPath,
-      JSON.stringify(trainingDataSet),
-    )
+    lines.push(JSON.stringify(trainingDataSet))
   }
+  const dataSetPath = path.join(__dirname, '..', 'rawData', `dataset.jsonl`)
+  await fs.writeFile(dataSetPath, lines.join('\n'))
 }
 
 run()
